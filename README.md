@@ -49,19 +49,6 @@ cp config.example.py config.py
 # 编辑config.py，添加DeepSeek API密钥等信息
 ```
 
-4. 初始化数据库
-
-```bash
-python initialize_db.py
-```
-
-5. 运行Web服务
-
-```bash
-cd web
-python app.py
-```
-
 服务器将在http://localhost:5000运行
 
 ## 使用方法
