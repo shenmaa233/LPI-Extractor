@@ -1,0 +1,83 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 数据文件
+*.db
+*.sqlite
+*.sqlite3
+paper_library/
+pdfs/
+uploads/
+data/
+*.csv
+*.json
+!requirements.json
+temp/
+tmp/
+
+# 日志
+*.log
+logs/
+
+# 操作系统相关
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# 临时文件
+*.tmp
+*.bak
+
+# 配置文件，但保留示例
+config.py
+settings.py
+!config.example.py
+!settings.example.py
+
+# 缓存目录
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# API密钥等敏感信息
+*.pem
+*.key
+credentials.json 
+

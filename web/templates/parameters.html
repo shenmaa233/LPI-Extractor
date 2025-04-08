@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>参数数据 - 激光物理论文参数提取系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">激光物理论文参数提取系统</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="bi bi-house-door"></i> 首页</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/search"><i class="bi bi-search"></i> 论文搜索</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/papers"><i class="bi bi-journals"></i> 论文库</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/parameters"><i class="bi bi-list-ul"></i> 参数数据</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/upload"><i class="bi bi-upload"></i> 上传论文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mb-5">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="mb-4"><i class="bi bi-list-ul"></i> 参数数据</h1>
+                
+                <!-- Filter Tabs -->
+                <ul class="nav nav-tabs mb-4" id="parameterFilterTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link {% if not selected_category %}active{% endif %}" id="all-tab" data-bs-toggle="tab" href="#all" role="tab" aria-controls="all" aria-selected="{{ 'true' if not selected_category else 'false' }}">
+                            所有参数
+                        </a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link {% if selected_category == 'laser' %}active{% endif %}" id="laser-tab" data-bs-toggle="tab" href="#laser" role="tab" aria-controls="laser" aria-selected="{{ 'true' if selected_category == 'laser' else 'false' }}">
+                            激光参数
+                        </a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link {% if selected_category == 'plasma' %}active{% endif %}" id="plasma-tab" data-bs-toggle="tab" href="#plasma" role="tab" aria-controls="plasma" aria-selected="{{ 'true' if selected_category == 'plasma' else 'false' }}">
+                            等离子体参数
+                        </a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link {% if selected_category == 'electron' %}active{% endif %}" id="electron-tab" data-bs-toggle="tab" href="#electron" role="tab" aria-controls="electron" aria-selected="{{ 'true' if selected_category == 'electron' else 'false' }}">
+                            电子束参数
+                        </a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link {% if selected_category == 'other' %}active{% endif %}" id="other-tab" data-bs-toggle="tab" href="#other" role="tab" aria-controls="other" aria-selected="{{ 'true' if selected_category == 'other' else 'false' }}">
+                            其他参数
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- Search and Export -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">搜索与导出</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <form action="/parameters" method="get">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" name="q" value="{{ search_query }}" placeholder="参数名称、数值或单位">
+                                        <input type="hidden" name="page" value="1">
+                                        <button class="btn btn-outline-primary" type="submit">
+                                            <i class="bi bi-search"></i> 搜索
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="col-md-6 text-md-end">
+                                <a href="/export" class="btn btn-success">
+                                    <i class="bi bi-download"></i> 导出所有参数
+                                </a>
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                                    <i class="bi bi-funnel"></i> 高级筛选
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Parameters Content -->
+                <div class="tab-content" id="parameterTabContent">
+                    <!-- All Parameters -->
+                    <div class="tab-pane fade {% if not selected_category %}show active{% endif %}" id="all" role="tabpanel" aria-labelledby="all-tab">
+                        <div class="card">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">参数列表</h5>
+                                <span class="badge bg-primary">共 {{ total_count }} 个参数</span>
+                            </div>
+                            <div class="card-body">
+                                {% if parameters %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover" id="parametersTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>参数名称</th>
+                                                    <th>数值</th>
+                                                    <th>单位</th>
+                                                    <th>论文</th>
+                                                    <th>来源</th>
+                                                    <th>可信度</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for param in parameters %}
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ param.parameter_name }}</strong>
+                                                        {% if param.category %}
+                                                        <span class="badge bg-secondary">{{ param.category }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ param.value }}</td>
+                                                    <td>{{ param.unit }}</td>
+                                                    <td>
+                                                        <a href="/paper/{{ param.paper_id }}" title="{{ param.paper.title if param.paper else '' }}">
+                                                            {{ param.paper.title[:30] + '...' if param.paper and param.paper.title else 'Unknown' }}
+                                                        </a>
+                                                    </td>
+                                                    <td>
+                                                        <span class="text-truncate d-inline-block" style="max-width: 200px;">
+                                                            {{ param.context }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="progress">
+                                                            {% set confidence = param.confidence_score|float * 100 if param.confidence_score else 0 %}
+                                                            {% set color = 'bg-success' if confidence >= 80 else 'bg-warning' if confidence >= 50 else 'bg-danger' %}
+                                                            <div class="progress-bar {{ color }}" role="progressbar" 
+                                                                 data-width="{{ confidence }}" 
+                                                                 aria-valuenow="{{ confidence }}" aria-valuemin="0" aria-valuemax="100">
+                                                                {{ "%.0f"|format(confidence) }}%
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <!-- Pagination -->
+                                    <nav aria-label="Page navigation">
+                                        <ul class="pagination justify-content-center">
+                                            {% if page > 1 %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ url_for('parameters', page=page-1, limit=limit, q=search_query, category=category) }}">
+                                                    <i class="bi bi-chevron-left"></i> 上一页
+                                                </a>
+                                            </li>
+                                            {% else %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link"><i class="bi bi-chevron-left"></i> 上一页</span>
+                                            </li>
+                                            {% endif %}
+                                            
+                                            <!-- Calculate pagination range with proper edge case handling -->
+                                            {% if total_pages > 0 %}
+                                                {% set start_page = page - 2 if page - 2 > 0 else 1 %}
+                                                {% set end_page = page + 2 if page + 2 < total_pages else total_pages %}
+                                                
+                                                {% for p in range(start_page, end_page + 1) %}
+                                                <li class="page-item {% if p == page %}active{% endif %}">
+                                                    <a class="page-link" href="{{ url_for('parameters', page=p, limit=limit, q=search_query, category=category) }}">{{ p }}</a>
+                                                </li>
+                                                {% endfor %}
+                                            {% endif %}
+                                            
+                                            {% if page < total_pages %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ url_for('parameters', page=page+1, limit=limit, q=search_query, category=category) }}">
+                                                    下一页 <i class="bi bi-chevron-right"></i>
+                                                </a>
+                                            </li>
+                                            {% else %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">下一页 <i class="bi bi-chevron-right"></i></span>
+                                            </li>
+                                            {% endif %}
+                                        </ul>
+                                    </nav>
+                                {% else %}
+                                    <div class="text-center py-5">
+                                        <i class="bi bi-clipboard-data" style="font-size: 3rem; color: #ccc;"></i>
+                                        <p class="mt-3">暂无参数数据，请先提取论文参数</p>
+                                        <div class="mt-3">
+                                            <a href="/papers" class="btn btn-primary">浏览论文库</a>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Category Specific Parameters (content loaded via JavaScript) -->
+                    <div class="tab-pane fade {% if selected_category == 'laser' %}show active{% endif %}" id="laser" role="tabpanel" aria-labelledby="laser-tab">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">激光参数</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">加载中...</span>
+                                </div>
+                                <p>加载中...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade {% if selected_category == 'plasma' %}show active{% endif %}" id="plasma" role="tabpanel" aria-labelledby="plasma-tab">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">等离子体参数</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">加载中...</span>
+                                </div>
+                                <p>加载中...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade {% if selected_category == 'electron' %}show active{% endif %}" id="electron" role="tabpanel" aria-labelledby="electron-tab">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">电子束参数</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">加载中...</span>
+                                </div>
+                                <p>加载中...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade {% if selected_category == 'other' %}show active{% endif %}" id="other" role="tabpanel" aria-labelledby="other-tab">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">其他参数</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">加载中...</span>
+                                </div>
+                                <p>加载中...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter Modal -->
+    <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="filterModalLabel">高级筛选</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="/parameters" method="get" id="advancedFilterForm">
+                        <!-- Hidden field to reset page when filtering -->
+                        <input type="hidden" name="page" value="1">
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="parameter_name" class="form-label">参数名称</label>
+                                <input type="text" class="form-control" id="parameter_name" name="parameter_name" placeholder="如：wavelength">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="category" class="form-label">参数类别</label>
+                                <select class="form-select" id="category" name="category">
+                                    <option value="">所有类别</option>
+                                    <option value="laser">激光参数</option>
+                                    <option value="plasma">等离子体参数</option>
+                                    <option value="electron">电子束参数</option>
+                                    <option value="other">其他参数</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="value_min" class="form-label">最小值</label>
+                                <input type="text" class="form-control" id="value_min" name="value_min" placeholder="最小数值">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="value_max" class="form-label">最大值</label>
+                                <input type="text" class="form-control" id="value_max" name="value_max" placeholder="最大数值">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="unit" class="form-label">单位</label>
+                                <input type="text" class="form-control" id="unit" name="unit" placeholder="如：nm, J, W/cm²">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="confidence_min" class="form-label">最小置信度</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="confidence_min" name="confidence_min" min="0" max="1" step="0.1" value="0">
+                                    <span class="input-group-text">0-1</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="date_after" class="form-label">论文发表日期晚于</label>
+                                <input type="date" class="form-control" id="date_after" name="date_after">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="document.getElementById('advancedFilterForm').submit();">应用筛选</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-light py-4 mt-auto">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">激光物理论文参数提取系统</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">基于 DeepSeek API 和 arXiv 构建</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    <script>
+        // Load category specific parameters when tab is clicked
+        document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(function(tabEl) {
+            tabEl.addEventListener('shown.bs.tab', function(event) {
+                const targetId = event.target.getAttribute('aria-controls');
+                if (targetId !== 'all') {
+                    // Only load if not already loaded
+                    const tabPane = document.getElementById(targetId);
+                    const tabBody = tabPane.querySelector('.card-body');
+                    
+                    // Reset to loading state
+                    tabBody.innerHTML = `
+                        <div class="text-center py-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                            <p class="mt-2">正在加载参数...</p>
+                        </div>
+                    `;
+                    
+                    // Create a mapping between tab IDs and category values
+                    const categoryMapping = {
+                        'laser': 'laser',
+                        'plasma': 'plasma',
+                        'electron': 'electron_beam',  // Map electron tab to electron_beam category
+                        'other': 'other'
+                    };
+                    
+                    // Use the mapping to get the correct category value
+                    const categoryValue = categoryMapping[targetId] || targetId;
+                    
+                    // Load content
+                    fetch(`/parameters?category=${categoryValue}&format=html`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! Status: ${response.status}`);
+                            }
+                            return response.text();
+                        })
+                        .then(html => {
+                            tabBody.innerHTML = html || `
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i> 没有找到参数
+                                </div>
+                            `;
+                        })
+                        .catch(error => {
+                            tabBody.innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="bi bi-exclamation-triangle"></i> 加载失败: ${error}
+                                    <div class="mt-2">
+                                        <button class="btn btn-sm btn-outline-danger" onclick="location.reload()">
+                                            <i class="bi bi-arrow-clockwise"></i> 重试
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                            console.error("加载失败:", error);
+                        });
+                }
+            });
+        });
+        
+        // Check if category parameter exists, if so, activate that tab
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const category = urlParams.get('category');
+            if (category && document.getElementById(`${category}-tab`)) {
+                const tabEl = document.getElementById(`${category}-tab`);
+                const tab = new bootstrap.Tab(tabEl);
+                tab.show();
+            }
+        });
+    </script>
+</body>
+</html> 

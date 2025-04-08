@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>论文搜索 - 激光物理论文参数提取系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <style>
+        .search-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .category-item {
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 5px;
+            padding: 0.5rem;
+        }
+        .category-item:hover {
+            background-color: #f8f9fa;
+        }
+        .search-info {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">激光物理论文参数提取系统</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="bi bi-house-door"></i> 首页</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/search"><i class="bi bi-search"></i> 论文搜索</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/papers"><i class="bi bi-journals"></i> 论文库</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/parameters"><i class="bi bi-list-ul"></i> 参数数据</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/upload"><i class="bi bi-upload"></i> 上传论文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mb-5">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="mb-4"><i class="bi bi-search"></i> 论文搜索与爬取</h1>
+                
+                <div class="search-info">
+                    <h5><i class="bi bi-info-circle"></i> 关于搜索</h5>
+                    <p>
+                        本系统基于arXiv API，可以搜索和下载物理、计算机科学等领域的学术论文。<br>
+                        搜索结果将自动下载并提取参数，保存到系统数据库中。
+                    </p>
+                    <p>
+                        <strong>提示：</strong> 为获得最准确的搜索结果，请使用英文关键词。对于激光物理领域，可以使用如下关键词：
+                    </p>
+                    <div class="d-flex flex-wrap">
+                        <span class="badge bg-light text-dark m-1 category-item" onclick="fillTerm('laser wakefield')">laser wakefield</span>
+                        <span class="badge bg-light text-dark m-1 category-item" onclick="fillTerm('plasma acceleration')">plasma acceleration</span>
+                        <span class="badge bg-light text-dark m-1 category-item" onclick="fillTerm('high power laser')">high power laser</span>
+                        <span class="badge bg-light text-dark m-1 category-item" onclick="fillTerm('ultrafast laser')">ultrafast laser</span>
+                        <span class="badge bg-light text-dark m-1 category-item" onclick="fillTerm('laser plasma')">laser plasma</span>
+                        <span class="badge bg-light text-dark m-1 category-item" onclick="fillTerm('petawatt laser')">petawatt laser</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-5">
+            <div class="col-lg-8 mx-auto">
+                <div class="card search-card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">搜索论文</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="/search" method="post">
+                            <div class="mb-3">
+                                <label for="title" class="form-label">标题包含</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-type"></i></span>
+                                    <input type="text" class="form-control" id="title" name="title" placeholder="例如：laser wakefield acceleration">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="abstract" class="form-label">摘要包含</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-file-text"></i></span>
+                                    <input type="text" class="form-control" id="abstract" name="abstract" placeholder="例如：electron acceleration">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="category" class="form-label">类别</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                                    <select class="form-select" id="category" name="category">
+                                        <option value="">所有类别</option>
+                                        <optgroup label="物理">
+                                            <option value="physics.plasm-ph">等离子体物理 (physics.plasm-ph)</option>
+                                            <option value="physics.optics">光学 (physics.optics)</option>
+                                            <option value="physics.acc-ph">加速器物理 (physics.acc-ph)</option>
+                                        </optgroup>
+                                        <optgroup label="计算机科学">
+                                            <option value="cs.AI">人工智能 (cs.AI)</option>
+                                            <option value="cs.LG">机器学习 (cs.LG)</option>
+                                        </optgroup>
+                                        <optgroup label="量子物理">
+                                            <option value="quant-ph">量子物理 (quant-ph)</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+                                <div class="form-text">选择特定类别可以获得更精确的结果</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="max" class="form-label">最大下载数量</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-123"></i></span>
+                                    <input type="number" class="form-control" id="max" name="max" value="10" min="1" max="50">
+                                </div>
+                                <div class="form-text">建议数量：10-20篇（每篇论文需要处理时间）</div>
+                            </div>
+                            
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="check_duplicates" name="check_duplicates" checked>
+                                <label class="form-check-label" for="check_duplicates">跳过已有论文（不占下载数量）</label>
+                                <div class="form-text">通过DOI或arXiv ID检查数据库中是否已有该论文，跳过已有论文不会占用下载数量限制</div>
+                            </div>
+                            
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="metadata_only" name="metadata_only">
+                                <label class="form-check-label" for="metadata_only">仅下载元数据（不下载PDF）</label>
+                                <div class="form-text">如果只需要论文信息而不需要提取参数，可以选择此选项</div>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> 提交后您将可以实时查看爬取进度，包括已找到论文、下载状态和重复论文统计。
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search"></i> 搜索并下载
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">常用搜索规则说明</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>搜索功能</th>
+                                        <th>用法</th>
+                                        <th>示例</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>多个关键词</td>
+                                        <td>空格分隔</td>
+                                        <td><code>laser plasma</code> - 同时包含laser和plasma</td>
+                                    </tr>
+                                    <tr>
+                                        <td>精确短语</td>
+                                        <td>使用引号</td>
+                                        <td><code>"laser wakefield acceleration"</code> - 精确匹配该短语</td>
+                                    </tr>
+                                    <tr>
+                                        <td>OR搜索</td>
+                                        <td>使用 OR 连接词</td>
+                                        <td><code>petawatt OR terawatt</code> - 包含任一关键词</td>
+                                    </tr>
+                                    <tr>
+                                        <td>排除关键词</td>
+                                        <td>使用减号</td>
+                                        <td><code>laser -diode</code> - 包含laser但不含diode</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-light py-4 mt-auto">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">激光物理论文参数提取系统</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">基于 DeepSeek API 和 arXiv 构建</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function fillTerm(term) {
+            // 如果标题为空，填充到标题，否则填充到摘要
+            if (!document.getElementById('title').value) {
+                document.getElementById('title').value = term;
+            } else if (!document.getElementById('abstract').value) {
+                document.getElementById('abstract').value = term;
+            } else {
+                // 两者都有值，更新标题
+                document.getElementById('title').value = term;
+            }
+        }
+    </script>
+</body>
+</html> 

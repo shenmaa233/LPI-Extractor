@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ paper.title }} - 激光物理论文参数提取系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        .paper-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .paper-meta-item {
+            padding: 6px 12px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .paper-meta-label {
+            font-weight: 500;
+            margin-right: 5px;
+        }
+        .abstract {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .parameter-item {
+            border-left: 3px solid #0d6efd;
+            padding-left: 15px;
+            margin-bottom: 15px;
+        }
+        .parameter-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #0d6efd;
+        }
+        .parameter-unit {
+            font-size: 1rem;
+            color: #6c757d;
+        }
+        .parameter-context {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 5px;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .pdf-viewer {
+            width: 100%;
+            height: 800px;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">激光物理论文参数提取系统</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="bi bi-house-door"></i> 首页</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/search"><i class="bi bi-search"></i> 论文搜索</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/papers"><i class="bi bi-journals"></i> 论文库</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/parameters"><i class="bi bi-list-ul"></i> 参数数据</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/upload"><i class="bi bi-upload"></i> 上传论文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mb-5">
+        <div class="row mb-4">
+            <div class="col-12">
+                <!-- Back Navigation -->
+                <div class="mb-4">
+                    <a href="/papers" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> 返回论文列表
+                    </a>
+                </div>
+                
+                <!-- Paper Title and Actions -->
+                <div class="mb-4">
+                    <h1 class="mb-3">{{ paper.title }}</h1>
+                    <div class="d-flex flex-wrap action-buttons">
+                        {% if not paper.processed and paper.local_pdf_path %}
+                        <a href="/extract/{{ paper.id }}" class="btn btn-success me-2 mb-2">
+                            <i class="bi bi-cpu me-1"></i> 提取参数
+                        </a>
+                        {% endif %}
+                        
+                        {% if paper.local_pdf_path %}
+                        <a href="/view_pdf/{{ paper.id }}" target="_blank" class="btn btn-primary me-2 mb-2">
+                            <i class="bi bi-file-pdf me-1"></i> 查看PDF
+                        </a>
+                        {% endif %}
+                        
+                        <a href="/processing_status/{{ paper.id }}" class="btn btn-info me-2 mb-2">
+                            <i class="bi bi-activity me-1"></i> 查看处理状态
+                        </a>
+                        
+                        {% if paper.pdf_url %}
+                        <a href="{{ paper.pdf_url }}" target="_blank" class="btn btn-outline-secondary mb-2">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> arXiv原文
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Paper Metadata -->
+                <div class="paper-meta">
+                    {% if paper.authors %}
+                    <div class="paper-meta-item">
+                        <span class="paper-meta-label"><i class="bi bi-people"></i> 作者：</span>
+                        <span>{{ paper.authors }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if paper.published_date %}
+                    <div class="paper-meta-item">
+                        <span class="paper-meta-label"><i class="bi bi-calendar"></i> 发布日期：</span>
+                        <span>{{ paper.published_date.strftime('%Y-%m-%d') }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if paper.categories %}
+                    <div class="paper-meta-item">
+                        <span class="paper-meta-label"><i class="bi bi-tags"></i> 分类：</span>
+                        <span>{{ paper.categories }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if paper.arxiv_id %}
+                    <div class="paper-meta-item">
+                        <span class="paper-meta-label"><i class="bi bi-link"></i> arXiv ID：</span>
+                        <a href="https://arxiv.org/abs/{{ paper.arxiv_id }}" target="_blank">{{ paper.arxiv_id }}</a>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="paper-meta-item">
+                        <span class="paper-meta-label"><i class="bi bi-lightning"></i> 处理状态：</span>
+                        {% if paper.processed %}
+                        <span class="badge bg-success">已提取参数</span>
+                        {% else %}
+                        <span class="badge bg-warning">未提取参数</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Abstract -->
+                {% if paper.abstract %}
+                <div class="mb-4">
+                    <h3 class="mb-3">摘要</h3>
+                    <div class="abstract">
+                        {{ paper.abstract }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Extracted Parameters -->
+                <div class="row">
+                    <!-- Parameters Section -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h3 class="mb-0">提取的参数</h3>
+                            </div>
+                            <div class="card-body">
+                                {% if parameters %}
+                                    <!-- Parameter Categories -->
+                                    <ul class="nav nav-tabs mb-4" id="parameterTabs" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab" aria-controls="all" aria-selected="true">
+                                                所有参数 ({{ parameters|length }})
+                                            </button>
+                                        </li>
+                                        {% if laser_parameters %}
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="laser-tab" data-bs-toggle="tab" data-bs-target="#laser" type="button" role="tab" aria-controls="laser" aria-selected="false">
+                                                激光参数 ({{ laser_parameters|length }})
+                                            </button>
+                                        </li>
+                                        {% endif %}
+                                        {% if plasma_parameters %}
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="plasma-tab" data-bs-toggle="tab" data-bs-target="#plasma" type="button" role="tab" aria-controls="plasma" aria-selected="false">
+                                                等离子体参数 ({{ plasma_parameters|length }})
+                                            </button>
+                                        </li>
+                                        {% endif %}
+                                        {% if electron_parameters %}
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="electron-tab" data-bs-toggle="tab" data-bs-target="#electron" type="button" role="tab" aria-controls="electron" aria-selected="false">
+                                                电子束参数 ({{ electron_parameters|length }})
+                                            </button>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                    
+                                    <!-- Tab Content -->
+                                    <div class="tab-content" id="parameterTabContent">
+                                        <!-- All Parameters -->
+                                        <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="all-tab">
+                                            {% for param in parameters %}
+                                            <div class="parameter-item">
+                                                <h5>{{ param.parameter_name }}</h5>
+                                                <div>
+                                                    <span class="parameter-value">{{ param.value }}</span>
+                                                    <span class="parameter-unit">{{ param.unit }}</span>
+                                                    {% if param.confidence_score %}
+                                                    <div class="progress mt-2" style="height: 5px;">
+                                                        {% set confidence = param.confidence_score|float * 100 %}
+                                                        {% set color = 'bg-success' if confidence >= 80 else 'bg-warning' if confidence >= 50 else 'bg-danger' %}
+                                                        <div class="progress-bar {{ color }}" role="progressbar" data-width="{{ confidence }}" 
+                                                             aria-valuenow="{{ confidence }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <small class="text-muted">可信度: {{ "%.0f"|format(confidence) }}%</small>
+                                                    {% endif %}
+                                                </div>
+                                                {% if param.context %}
+                                                <div class="parameter-context">
+                                                    <small><em>来源: {{ param.context }}</em></small>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        
+                                        <!-- Laser Parameters -->
+                                        {% if laser_parameters %}
+                                        <div class="tab-pane fade" id="laser" role="tabpanel" aria-labelledby="laser-tab">
+                                            {% for param in laser_parameters %}
+                                            <div class="parameter-item">
+                                                <h5>{{ param.parameter_name }}</h5>
+                                                <div>
+                                                    <span class="parameter-value">{{ param.value }}</span>
+                                                    <span class="parameter-unit">{{ param.unit }}</span>
+                                                    {% if param.confidence_score %}
+                                                    <div class="progress mt-2" style="height: 5px;">
+                                                        {% set confidence = param.confidence_score|float * 100 %}
+                                                        {% set color = 'bg-success' if confidence >= 80 else 'bg-warning' if confidence >= 50 else 'bg-danger' %}
+                                                        <div class="progress-bar {{ color }}" role="progressbar" data-width="{{ confidence }}" 
+                                                             aria-valuenow="{{ confidence }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <small class="text-muted">可信度: {{ "%.0f"|format(confidence) }}%</small>
+                                                    {% endif %}
+                                                </div>
+                                                {% if param.context %}
+                                                <div class="parameter-context">
+                                                    <small><em>来源: {{ param.context }}</em></small>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- Plasma Parameters -->
+                                        {% if plasma_parameters %}
+                                        <div class="tab-pane fade" id="plasma" role="tabpanel" aria-labelledby="plasma-tab">
+                                            {% for param in plasma_parameters %}
+                                            <div class="parameter-item">
+                                                <h5>{{ param.parameter_name }}</h5>
+                                                <div>
+                                                    <span class="parameter-value">{{ param.value }}</span>
+                                                    <span class="parameter-unit">{{ param.unit }}</span>
+                                                    {% if param.confidence_score %}
+                                                    <div class="progress mt-2" style="height: 5px;">
+                                                        {% set confidence = param.confidence_score|float * 100 %}
+                                                        {% set color = 'bg-success' if confidence >= 80 else 'bg-warning' if confidence >= 50 else 'bg-danger' %}
+                                                        <div class="progress-bar {{ color }}" role="progressbar" data-width="{{ confidence }}" 
+                                                             aria-valuenow="{{ confidence }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <small class="text-muted">可信度: {{ "%.0f"|format(confidence) }}%</small>
+                                                    {% endif %}
+                                                </div>
+                                                {% if param.context %}
+                                                <div class="parameter-context">
+                                                    <small><em>来源: {{ param.context }}</em></small>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- Electron Parameters -->
+                                        {% if electron_parameters %}
+                                        <div class="tab-pane fade" id="electron" role="tabpanel" aria-labelledby="electron-tab">
+                                            {% for param in electron_parameters %}
+                                            <div class="parameter-item">
+                                                <h5>{{ param.parameter_name }}</h5>
+                                                <div>
+                                                    <span class="parameter-value">{{ param.value }}</span>
+                                                    <span class="parameter-unit">{{ param.unit }}</span>
+                                                    {% if param.confidence_score %}
+                                                    <div class="progress mt-2" style="height: 5px;">
+                                                        {% set confidence = param.confidence_score|float * 100 %}
+                                                        {% set color = 'bg-success' if confidence >= 80 else 'bg-warning' if confidence >= 50 else 'bg-danger' %}
+                                                        <div class="progress-bar {{ color }}" role="progressbar" data-width="{{ confidence }}" 
+                                                             aria-valuenow="{{ confidence }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <small class="text-muted">可信度: {{ "%.0f"|format(confidence) }}%</small>
+                                                    {% endif %}
+                                                </div>
+                                                {% if param.context %}
+                                                <div class="parameter-context">
+                                                    <small><em>来源: {{ param.context }}</em></small>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    <!-- Check if parameter extraction is in progress -->
+                                    {% with processing_records = get_processing_records(paper.id, "parameter_extraction", "pending") %}
+                                    {% if processing_records %}
+                                    <div class="alert alert-info">
+                                        <div class="d-flex align-items-center">
+                                            <div class="spinner-border text-primary me-3" role="status">
+                                                <span class="visually-hidden">加载中...</span>
+                                            </div>
+                                            <div>
+                                                <h5 class="mb-1">参数提取进行中</h5>
+                                                <p class="mb-0">系统正在从论文中提取参数，这可能需要几分钟时间，请耐心等待...</p>
+                                                <div class="mt-2">
+                                                    <a href="/processing_status/{{ paper.id }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-activity"></i> 查看详细进度
+                                                    </a>
+                                                    <small class="text-muted ms-2">页面将每30秒自动刷新</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <script>
+                                        // Auto refresh the page every 30 seconds to show progress
+                                        setTimeout(function() {
+                                            window.location.reload();
+                                        }, 30000);
+                                    </script>
+                                    {% elif paper.processed %}
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle"></i> 未找到任何参数。可能论文中不包含可提取的参数，或者提取过程中出现了问题。
+                                    </div>
+                                    {% else %}
+                                    <div class="alert alert-warning">
+                                        <i class="bi bi-exclamation-triangle"></i> 尚未提取参数。请点击"提取参数"按钮进行参数提取。
+                                    </div>
+                                    {% endif %}
+                                    {% endwith %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- PDF Preview Section -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h3 class="mb-0">PDF预览</h3>
+                            </div>
+                            <div class="card-body">
+                                {% if paper.local_pdf_path %}
+                                <iframe class="pdf-viewer" src="/view_pdf/{{ paper.id }}" allowfullscreen></iframe>
+                                {% else %}
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-triangle"></i> 本地PDF文件不可用。
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-light py-4 mt-auto">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">激光物理论文参数提取系统</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">基于 DeepSeek API 和 arXiv 构建</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/main.js"></script>
+</body>
+</html> 

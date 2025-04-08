@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>导出参数 - 激光物理论文参数提取系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">激光物理论文参数提取系统</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="bi bi-house-door"></i> 首页</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/search"><i class="bi bi-search"></i> 论文搜索</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/papers"><i class="bi bi-journals"></i> 论文库</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/parameters"><i class="bi bi-list-ul"></i> 参数数据</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/upload"><i class="bi bi-upload"></i> 上传论文</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mb-5">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="mb-4"><i class="bi bi-download"></i> 导出参数数据</h1>
+
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">参数导出选项</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="/export" method="post">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="parameter_name" class="form-label">参数名称</label>
+                                    <input type="text" class="form-control" id="parameter_name" name="parameter_name" placeholder="例如: wavelength, intensity, energy...">
+                                    <div class="form-text">可以输入部分名称进行模糊匹配</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="category" class="form-label">参数类别</label>
+                                    <select class="form-select" id="category" name="category">
+                                        <option value="">所有类别</option>
+                                        {% for category in categories %}
+                                        <option value="{{ category }}">{{ category }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label for="paper_title" class="form-label">论文标题</label>
+                                    <input type="text" class="form-control" id="paper_title" name="paper_title" placeholder="输入论文标题关键词">
+                                    <div class="form-text">可以输入部分标题进行模糊匹配</div>
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> 导出文件将包含以下字段:
+                                <ul class="mb-0 mt-2">
+                                    <li>参数名称 (parameter_name)</li>
+                                    <li>数值 (value)</li>
+                                    <li>单位 (unit)</li>
+                                    <li>类别 (category)</li>
+                                    <li>可信度 (confidence_score)</li>
+                                    <li>论文标题 (paper_title)</li>
+                                    <li>作者 (authors)</li>
+                                    <li>arXiv ID (arxiv_id)</li>
+                                </ul>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <a href="/parameters" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-left"></i> 返回参数列表
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-download"></i> 导出为CSV
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-light py-4 mt-auto">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">激光物理论文参数提取系统</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">基于 DeepSeek API 和 arXiv 构建</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/main.js"></script>
+</body>
+</html> 
