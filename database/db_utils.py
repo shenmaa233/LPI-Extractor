@@ -72,7 +72,8 @@ class DatabaseManager:
                 published_date=self._parse_date(paper_data.get('published')),
                 updated_date=self._parse_date(paper_data.get('updated')),
                 pdf_url=paper_data.get('pdf_url', ''),
-                local_pdf_path=paper_data.get('local_path', '')
+                local_pdf_path=paper_data.get('local_path', ''),
+                doi=str(paper_data.get('doi', '')) if paper_data.get('doi') else None
             )
             
             # 添加到数据库
@@ -115,7 +116,8 @@ class DatabaseManager:
                     published_date=self._parse_date(paper_data.get('published')),
                     updated_date=self._parse_date(paper_data.get('updated')),
                     pdf_url=paper_data.get('pdf_url', ''),
-                    local_pdf_path=paper_data.get('local_path', '')
+                    local_pdf_path=paper_data.get('local_path', ''),
+                    doi=str(paper_data.get('doi', '')) if paper_data.get('doi') else None
                 )
                 
                 # 添加到数据库
@@ -189,6 +191,7 @@ class DatabaseManager:
                 'updated_date': paper.updated_date,
                 'pdf_url': paper.pdf_url,
                 'local_pdf_path': paper.local_pdf_path,
+                'doi': paper.doi,
                 'created_at': paper.created_at,
                 'updated_at': paper.updated_at,
                 'processed': paper.processed
@@ -222,6 +225,7 @@ class DatabaseManager:
                 'updated_date': paper.updated_date,
                 'pdf_url': paper.pdf_url,
                 'local_pdf_path': paper.local_pdf_path,
+                'doi': paper.doi,
                 'created_at': paper.created_at,
                 'updated_at': paper.updated_at,
                 'processed': paper.processed
@@ -267,6 +271,7 @@ class DatabaseManager:
                     'updated_date': paper.updated_date,
                     'pdf_url': paper.pdf_url,
                     'local_pdf_path': paper.local_pdf_path,
+                    'doi': paper.doi,
                     'created_at': paper.created_at,
                     'updated_at': paper.updated_at,
                     'processed': paper.processed
@@ -320,6 +325,7 @@ class DatabaseManager:
                     'updated_date': paper.updated_date,
                     'pdf_url': paper.pdf_url,
                     'local_pdf_path': paper.local_pdf_path,
+                    'doi': paper.doi,
                     'created_at': paper.created_at,
                     'updated_at': paper.updated_at,
                     'processed': paper.processed

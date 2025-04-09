@@ -7,40 +7,157 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
     <style>
-        .paper-card {
+        body {
+            background-color: #f8f9fa;
+        }
+        .progress-card {
+            border-radius: 15px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+            border: none;
+            overflow: hidden;
+        }
+        .progress-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        .card-title {
+            color: #0d6efd;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        .card-title i {
+            margin-right: 10px;
+        }
+        .progress {
+            height: 25px;
+            border-radius: 12px;
+            background-color: #e9ecef;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #0d6efd, #6610f2);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: width 0.8s ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0.1) 0%,
+                rgba(255, 255, 255, 0.2) 20%,
+                rgba(255, 255, 255, 0.1) 40%
+            );
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .paper-item {
+            border-left: 4px solid #0d6efd;
+            padding: 15px;
             margin-bottom: 15px;
             transition: all 0.3s;
+            border-radius: 0 10px 10px 0;
+            background-color: white;
         }
-        .paper-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        .paper-item:hover {
+            background-color: #f0f7ff;
+            transform: translateX(5px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
         }
-        .paper-status {
+        .status-badge {
+            font-size: 1.1rem;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
             display: inline-block;
-            width: 12px;
-            height: 12px;
+            min-width: 120px;
+            text-transform: capitalize;
+        }
+        .current-paper {
+            background-color: #e7f1ff;
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 0;
+            border-left: 4px solid #0d6efd;
+        }
+        .counter-card {
+            background-color: white;
+            border-radius: 10px;
+            text-align: center;
+            padding: 15px 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        .counter-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #0d6efd;
+            margin: 5px 0;
+        }
+        .counter-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        footer {
+            background: linear-gradient(90deg, #0d6efd, #6610f2);
+            color: white;
+        }
+        .loader {
+            width: 100%;
+            height: 4px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: linear-gradient(90deg, #0d6efd, #6610f2);
+            z-index: 9999;
+            animation: loading 2s infinite;
+        }
+        @keyframes loading {
+            0% { width: 0%; left: 0; }
+            50% { width: 30%; left: 35%; }
+            100% { width: 0%; left: 100%; }
+        }
+        .refresh-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            margin-right: 5px;
-        }
-        .status-pending {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-        }
-        .status-downloading {
-            background-color: #ffc107;
-        }
-        .status-completed {
             background-color: #28a745;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
         }
-        .status-skipped {
-            background-color: #6c757d;
+        @keyframes pulse {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0.5; }
         }
-        .status-error {
-            background-color: #dc3545;
+        .no-papers {
+            text-align: center;
+            padding: 40px 0;
+            color: #6c757d;
+        }
+        .no-papers i {
+            font-size: 3rem;
+            color: #dee2e6;
+            margin-bottom: 15px;
         }
     </style>
 </head>
 <body>
+    <div class="loader" id="loading-bar"></div>
+    
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
         <div class="container">
             <a class="navbar-brand" href="/">激光物理论文参数提取系统</a>
@@ -53,7 +170,10 @@
                         <a class="nav-link" href="/"><i class="bi bi-house-door"></i> 首页</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/search"><i class="bi bi-search"></i> 论文搜索</a>
+                        <a class="nav-link" href="/search"><i class="bi bi-search"></i> 论文搜索</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/search"><i class="bi bi-clock-history"></i> 爬取进度</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/papers"><i class="bi bi-journals"></i> 论文库</a>
@@ -69,180 +189,171 @@
         </div>
     </nav>
 
-    <div class="container">
+    <div class="container mb-5">
         <div class="row mb-4">
-            <div class="col-12">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="/search">论文搜索</a></li>
-                        <li class="breadcrumb-item active">爬取进度</li>
-                    </ol>
-                </nav>
-                <h1 class="mb-4"><i class="bi bi-cloud-download"></i> 论文爬取进度</h1>
+            <div class="col-12 d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="bi bi-clock-history"></i> 爬取进度</h2>
+                    <p class="text-muted mb-0">实时显示论文爬取进度和状态</p>
+                </div>
+                <div>
+                    <span class="badge bg-info"><i class="bi bi-arrow-repeat"></i> 自动刷新中 <span class="refresh-indicator"></span></span>
+                </div>
             </div>
         </div>
-
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">爬取状态</h5>
-                        <span id="status-badge" class="badge bg-info">正在爬取</span>
-                    </div>
+        
+        <div class="row">
+            <!-- 进度概览卡片 -->
+            <div class="col-md-12 mb-4">
+                <div class="card progress-card">
                     <div class="card-body">
-                        <div class="progress mb-3" style="height: 25px;">
-                            <div id="progress-bar" 
-                                 class="progress-bar progress-bar-striped progress-bar-animated" 
+                        <h5 class="card-title"><i class="bi bi-graph-up"></i> 进度概览</h5>
+                        <div class="progress mb-4">
+                            <div class="progress-bar" 
                                  role="progressbar" 
-                                 style="width: '{{ progress.percent_complete|default(0) }}%'" 
-                                 aria-valuenow="{{ progress.percent_complete|default(0) }}" 
+                                 data-width="{{ progress.percent_complete }}"
+                                 aria-valuenow="{{ progress.percent_complete }}" 
                                  aria-valuemin="0" 
                                  aria-valuemax="100">
-                                {{ progress.percent_complete|default(0) }}%
+                                {{ progress.percent_complete }}%
                             </div>
                         </div>
-                        
                         <div class="row text-center">
-                            <div class="col-md-3">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h3 id="total-count">{{ progress.total|default(0) }}</h3>
-                                        <p class="text-muted">总论文数</p>
-                                    </div>
+                            <div class="col-lg-3 col-md-6 mb-3">
+                                <div class="counter-card">
+                                    <i class="bi bi-file-earmark-text text-primary"></i>
+                                    <div class="counter-value" id="total-counter">{{ progress.total }}</div>
+                                    <div class="counter-label">总论文数</div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h3 id="processed-count">{{ progress.processed|default(0) }}</h3>
-                                        <p class="text-muted">已处理</p>
-                                    </div>
+                            <div class="col-lg-3 col-md-6 mb-3">
+                                <div class="counter-card">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    <div class="counter-value" id="processed-counter">{{ progress.processed }}</div>
+                                    <div class="counter-label">已处理</div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h3 id="skipped-count">{{ progress.skipped|default(0) }}</h3>
-                                        <p class="text-muted">已跳过（重复）</p>
-                                    </div>
+                            <div class="col-lg-3 col-md-6 mb-3">
+                                <div class="counter-card">
+                                    <i class="bi bi-skip-forward text-warning"></i>
+                                    <div class="counter-value" id="skipped-counter">{{ progress.skipped }}</div>
+                                    <div class="counter-label">已跳过</div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h3 id="completed-count">{{ progress.completed|default(0) }}</h3>
-                                        <p class="text-muted">已完成</p>
+                            <div class="col-lg-3 col-md-6 mb-3">
+                                <div class="counter-card">
+                                    <i class="bi bi-info-circle text-info"></i>
+                                    <div class="counter-value">
+                                        <span id="status" class="status-badge 
+                                        {% if progress.status == 'completed' %}bg-success
+                                        {% elif progress.status == 'imported' %}bg-success
+                                        {% elif progress.status == 'failed' %}bg-danger
+                                        {% elif progress.status == 'starting' %}bg-warning
+                                        {% else %}bg-info{% endif %}">
+                                            {% if progress.status == 'completed' %}已完成
+                                            {% elif progress.status == 'imported' %}已导入
+                                            {% elif progress.status == 'failed' %}失败
+                                            {% elif progress.status == 'starting' %}开始中
+                                            {% elif progress.status == 'running' %}运行中
+                                            {% elif progress.status == 'initializing' %}初始化
+                                            {% elif progress.status == 'import_failed' %}导入失败
+                                            {% else %}{{ progress.status }}{% endif %}
+                                        </span>
                                     </div>
+                                    <div class="counter-label">状态</div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="mt-3" id="status-message">
-                            {% if progress.status == 'completed' %}
-                                <div class="alert alert-success">
-                                    <i class="bi bi-check-circle"></i> 爬取任务已完成，共下载 {{ progress.completed }} 篇论文。
-                                </div>
-                            {% elif progress.status == 'imported' %}
-                                <div class="alert alert-success">
-                                    <i class="bi bi-check-circle"></i> 爬取完成并已导入数据库，共导入 {{ progress.imported_count|default(progress.completed) }} 篇论文。
-                                    <div class="mt-2">
-                                        <a href="/papers" class="btn btn-sm btn-outline-success">
-                                            <i class="bi bi-journals"></i> 查看论文库
-                                        </a>
-                                    </div>
-                                </div>
-                            {% elif progress.status == 'failed' %}
-                                <div class="alert alert-danger">
-                                    <i class="bi bi-exclamation-triangle"></i> 爬取任务失败: {{ progress.error }}
-                                </div>
-                            {% elif progress.status == 'import_failed' %}
-                                <div class="alert alert-warning">
-                                    <i class="bi bi-exclamation-triangle"></i> 爬取完成但导入数据库失败: {{ progress.error }}
-                                    <div class="mt-2">
-                                        <a href="/search" class="btn btn-sm btn-outline-warning">
-                                            <i class="bi bi-arrow-counterclockwise"></i> 重新尝试
-                                        </a>
-                                    </div>
-                                </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 完成状态提示 -->
+        <div id="completion-alert" class="row mb-4" {% if progress.status == 'completed' or progress.status == 'imported' %}{% else %}style="display: none;"{% endif %}>
+            <div class="col-12">
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle-fill me-2"></i> 论文爬取已完成！
+                    <div class="mt-3">
+                        <a href="/papers" class="btn btn-primary me-2">
+                            <i class="bi bi-journals"></i> 查看所有论文
+                        </a>
+                        <a href="/search" class="btn btn-secondary">
+                            <i class="bi bi-search"></i> 继续搜索
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- 当前处理论文卡片 -->
+            <div class="col-md-6 mb-4">
+                <div class="card progress-card">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-file-earmark-text"></i> 当前处理论文</h5>
+                        <div id="current-paper" class="current-paper">
+                            {% if progress.current_paper %}
+                                <h6 class="mb-2">{{ progress.current_paper.title }}</h6>
+                                <p class="mb-1"><small class="text-muted">作者: {{ progress.current_paper.authors|join(', ') }}</small></p>
+                                <p class="mb-0"><small class="text-muted">分类: {{ progress.current_paper.categories|join(', ') }}</small></p>
                             {% else %}
-                                <div class="alert alert-info">
-                                    <i class="bi bi-info-circle"></i> 正在爬取论文，请稍候...
-                                    <span id="current-paper-info">
-                                        {% if progress.current_paper %}
-                                            当前处理: {{ progress.current_paper.title|truncate(60) }}
-                                        {% endif %}
-                                    </span>
-                                </div>
+                                <p class="text-muted mb-0">等待开始处理...</p>
                             {% endif %}
                         </div>
-                        
-                        <div class="mt-3 d-flex justify-content-between">
-                            <a href="/search" class="btn btn-outline-primary">
-                                <i class="bi bi-arrow-left"></i> 返回搜索
-                            </a>
-                            
-                            <a href="/papers" class="btn btn-outline-success">
-                                <i class="bi bi-journals"></i> 查看论文库
-                            </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 最近处理论文卡片 -->
+            <div class="col-md-6 mb-4">
+                <div class="card progress-card">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-clock-history"></i> 最近处理</h5>
+                        <div id="recent-paper" class="current-paper">
+                            <p class="text-muted mb-0">暂无最近处理的论文</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0">找到的论文 ({{ papers|length }})</h5>
-                    </div>
+        <!-- 论文列表 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card progress-card">
                     <div class="card-body">
-                        {% if papers %}
-                            <div class="row" id="papers-container">
+                        <h5 class="card-title"><i class="bi bi-list-ul"></i> 已处理论文列表</h5>
+                        <div id="papers-list">
+                            {% if papers and papers|length > 0 %}
                                 {% for paper in papers %}
-                                    <div class="col-md-6">
-                                        <div class="card paper-card" id="paper-{{ paper.id }}">
-                                            <div class="card-body">
-                                                <h5 class="card-title">
-                                                    <span class="paper-status status-pending" 
-                                                          data-paper-id="{{ paper.id }}"></span>
-                                                    {{ paper.title }}
-                                                </h5>
-                                                <p class="card-text text-muted">
-                                                    {{ paper.authors|join(', ')|truncate(100) }}
-                                                </p>
-                                                <div class="d-flex justify-content-between">
-                                                    <span class="badge bg-secondary">{{ paper.categories|join(', ') }}</span>
-                                                    <small class="text-muted">{{ paper.published|truncate(10) }}</small>
-                                                </div>
-                                                {% if paper.already_exists %}
-                                                <div class="mt-2">
-                                                    <span class="badge bg-secondary">
-                                                        <i class="bi bi-check-circle-fill"></i> 数据库中已存在，已跳过
-                                                    </span>
-                                                </div>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="paper-item">
+                                    <h6 class="mb-1">{{ paper.title }}</h6>
+                                    <p class="mb-1"><small class="text-muted">作者: {{ paper.authors|join(', ') }}</small></p>
+                                    <p class="mb-1"><small class="text-muted">分类: {{ paper.categories|join(', ') }}</small></p>
+                                    <span class="badge {{ 'bg-success' if paper.status == 'completed' else 'bg-warning' }}">
+                                        {{ '已完成' if paper.status == 'completed' else '处理中' }}
+                                    </span>
+                                </div>
                                 {% endfor %}
-                            </div>
-                        {% else %}
-                            <div class="alert alert-info">
-                                <i class="bi bi-info-circle"></i> 正在搜索论文，请稍候...
-                            </div>
-                        {% endif %}
+                            {% else %}
+                                <div class="no-papers">
+                                    <i class="bi bi-journal-x"></i>
+                                    <p>暂无已处理的论文</p>
+                                </div>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <footer class="bg-light py-4 mt-auto">
+    <footer class="py-4 mt-auto">
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
-                    <p class="mb-0">激光物理论文参数提取系统</p>
+                    <p class="mb-0">激光物理论文参数提取系统 &copy; {{ current_year }}</p>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <p class="mb-0">基于 DeepSeek API 和 arXiv 构建</p>
@@ -253,136 +364,230 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // 轮询间隔（毫秒）
-        const POLL_INTERVAL = 2000;
-        let isCompleted = false;
-        
-        // 状态映射
-        const statusMap = {
-            'starting': { text: '初始化中', badge: 'bg-info' },
-            'in_progress': { text: '正在爬取', badge: 'bg-primary' },
-            'completed': { text: '爬取完成', badge: 'bg-success' },
-            'imported': { text: '导入完成', badge: 'bg-success' },
-            'failed': { text: '爬取失败', badge: 'bg-danger' },
-            'import_failed': { text: '导入失败', badge: 'bg-warning' }
-        };
-        
-        // 更新进度UI
-        function updateProgress(data) {
-            // 更新进度条
-            const progressBar = document.getElementById('progress-bar');
-            progressBar.style.width = `${data.percent_complete}%`;
-            progressBar.textContent = `${data.percent_complete}%`;
-            progressBar.setAttribute('aria-valuenow', data.percent_complete);
-            
-            // 更新计数器
-            document.getElementById('total-count').textContent = data.total || 0;
-            document.getElementById('processed-count').textContent = data.processed || 0;
-            document.getElementById('skipped-count').textContent = data.skipped || 0;
-            document.getElementById('completed-count').textContent = data.completed || 0;
-            
-            // 更新状态
-            const statusBadge = document.getElementById('status-badge');
-            const status = data.status || 'in_progress';
-            const statusInfo = statusMap[status] || { text: '未知', badge: 'bg-secondary' };
-            
-            statusBadge.textContent = statusInfo.text;
-            statusBadge.className = `badge ${statusInfo.badge}`;
-            
-            // 更新当前论文信息
-            const currentPaperInfo = document.getElementById('current-paper-info');
-            if (data.current_paper) {
-                currentPaperInfo.textContent = `当前处理: ${data.current_paper.title.substring(0, 60)}${data.current_paper.title.length > 60 ? '...' : ''}`;
-            }
-            
-            // 更新状态消息
-            const statusMessage = document.getElementById('status-message');
-            if (status === 'completed') {
-                statusMessage.innerHTML = `
-                    <div class="alert alert-success">
-                        <i class="bi bi-check-circle"></i> 爬取任务已完成，共下载 ${data.completed} 篇论文。
-                    </div>
-                `;
-                isCompleted = true;
-            } else if (status === 'imported') {
-                statusMessage.innerHTML = `
-                    <div class="alert alert-success">
-                        <i class="bi bi-check-circle"></i> 爬取完成并已导入数据库，共导入 ${data.imported_count || data.completed} 篇论文。
-                        <div class="mt-2">
-                            <a href="/papers" class="btn btn-sm btn-outline-success">
-                                <i class="bi bi-journals"></i> 查看论文库
-                            </a>
-                        </div>
-                    </div>
-                `;
-                isCompleted = true;
-            } else if (status === 'failed') {
-                statusMessage.innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="bi bi-exclamation-triangle"></i> 爬取任务失败: ${data.error || '未知错误'}
-                    </div>
-                `;
-                isCompleted = true;
-            } else if (status === 'import_failed') {
-                statusMessage.innerHTML = `
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i> 爬取完成但导入数据库失败: ${data.error || '未知错误'}
-                        <div class="mt-2">
-                            <a href="/search" class="btn btn-sm btn-outline-warning">
-                                <i class="bi bi-arrow-counterclockwise"></i> 重新尝试
-                            </a>
-                        </div>
-                    </div>
-                `;
-                isCompleted = true;
-            } else {
-                statusMessage.innerHTML = `
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> 正在爬取论文，请稍候...
-                        <span id="current-paper-info">
-                            ${data.current_paper ? `当前处理: ${data.current_paper.title.substring(0, 60)}${data.current_paper.title.length > 60 ? '...' : ''}` : ''}
-                        </span>
-                    </div>
-                `;
-            }
-            
-            // 停止轮询
-            if (isCompleted) {
-                clearInterval(pollInterval);
-            }
-        }
-        
-        // 轮询进度
-        function pollProgress() {
-            fetch('/api/crawler_progress/{{ output_dir }}')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    updateProgress(data);
-                })
-                .catch(error => {
-                    console.error('获取进度失败:', error);
-                });
-        }
-        
-        // 页面加载时执行一次
         document.addEventListener('DOMContentLoaded', function() {
-            // 设置状态
-            const initialStatus = '{{ progress.status }}' || 'in_progress';
-            if (initialStatus === 'completed' || initialStatus === 'imported' || 
-                initialStatus === 'failed' || initialStatus === 'import_failed') {
-                isCompleted = true;
+            // 设置初始进度条宽度
+            const progressBar = document.querySelector('.progress-bar');
+            if (progressBar) {
+                const width = progressBar.getAttribute('data-width');
+                progressBar.style.width = width + '%';
             }
             
-            // 如果没有完成，开始轮询
-            if (!isCompleted) {
-                pollProgress();
-                window.pollInterval = setInterval(pollProgress, POLL_INTERVAL);
+            let recentPapers = [];
+            let updateCounter = 0;
+            
+            // 数字动画效果
+            function animateValue(element, start, end, duration) {
+                if (!element) return;
+                
+                let startTimestamp = null;
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    const value = Math.floor(progress * (end - start) + start);
+                    element.textContent = value;
+                    if (progress < 1) {
+                        window.requestAnimationFrame(step);
+                    }
+                };
+                window.requestAnimationFrame(step);
             }
+            
+            // 更新进度
+            function updateProgress() {
+                // 显示加载指示器
+                document.getElementById('loading-bar').style.display = 'block';
+                
+                fetch('/api/crawler_progress/{{ output_dir }}')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('API响应错误: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // 隐藏加载指示器
+                        document.getElementById('loading-bar').style.display = 'none';
+                        updateCounter++;
+                        
+                        // 更新进度条
+                        const progressBar = document.querySelector('.progress-bar');
+                        if (progressBar) {
+                            progressBar.style.width = data.percent_complete + '%';
+                            progressBar.setAttribute('aria-valuenow', data.percent_complete);
+                            progressBar.textContent = data.percent_complete + '%';
+                        }
+                        
+                        // 更新计数器（带动画）
+                        const totalCounter = document.getElementById('total-counter');
+                        const processedCounter = document.getElementById('processed-counter');
+                        const skippedCounter = document.getElementById('skipped-counter');
+                        
+                        const oldTotal = parseInt(totalCounter.textContent) || 0;
+                        const oldProcessed = parseInt(processedCounter.textContent) || 0;
+                        const oldSkipped = parseInt(skippedCounter.textContent) || 0;
+                        
+                        if (oldTotal !== data.total) {
+                            animateValue(totalCounter, oldTotal, data.total, 500);
+                        }
+                        if (oldProcessed !== data.processed) {
+                            animateValue(processedCounter, oldProcessed, data.processed, 500);
+                        }
+                        if (oldSkipped !== data.skipped) {
+                            animateValue(skippedCounter, oldSkipped, data.skipped, 500);
+                        }
+                        
+                        // 更新状态
+                        const statusElement = document.getElementById('status');
+                        // 翻译状态文本
+                        let statusText = '';
+                        switch(data.status) {
+                            case 'completed': statusText = '已完成'; break;
+                            case 'imported': statusText = '已导入'; break;
+                            case 'failed': statusText = '失败'; break;
+                            case 'starting': statusText = '开始中'; break;
+                            case 'running': statusText = '运行中'; break;
+                            case 'initializing': statusText = '初始化'; break;
+                            case 'import_failed': statusText = '导入失败'; break;
+                            default: statusText = data.status;
+                        }
+                        statusElement.textContent = statusText;
+                        
+                        // 根据状态更新徽章颜色
+                        if (data.status === 'completed' || data.status === 'imported') {
+                            statusElement.className = 'status-badge bg-success';
+                        } else if (data.status === 'failed' || data.status === 'import_failed') {
+                            statusElement.className = 'status-badge bg-danger';
+                        } else if (data.status === 'starting' || data.status === 'initializing') {
+                            statusElement.className = 'status-badge bg-warning';
+                        } else {
+                            statusElement.className = 'status-badge bg-info';
+                        }
+                        
+                        // 更新当前论文
+                        const currentPaperDiv = document.getElementById('current-paper');
+                        if (data.current_paper) {
+                            currentPaperDiv.innerHTML = `
+                                <h6 class="mb-2">${data.current_paper.title}</h6>
+                                <p class="mb-1"><small class="text-muted">作者: ${data.current_paper.authors.join(', ')}</small></p>
+                                <p class="mb-0"><small class="text-muted">分类: ${data.current_paper.categories.join(', ')}</small></p>
+                            `;
+                            
+                            // 如果是新的当前论文，添加到最近处理的论文
+                            if (recentPapers.length === 0 || recentPapers[0].id !== data.current_paper.id) {
+                                // 保存到最近的论文列表
+                                recentPapers.unshift(data.current_paper);
+                                if (recentPapers.length > 5) {
+                                    recentPapers.pop();
+                                }
+                                
+                                // 更新最近处理的论文
+                                const recentPaperDiv = document.getElementById('recent-paper');
+                                if (recentPapers.length > 1) {
+                                    recentPaperDiv.innerHTML = `
+                                        <h6 class="mb-2">${recentPapers[1].title}</h6>
+                                        <p class="mb-1"><small class="text-muted">作者: ${recentPapers[1].authors.join(', ')}</small></p>
+                                        <p class="mb-0"><small class="text-muted">分类: ${recentPapers[1].categories.join(', ')}</small></p>
+                                    `;
+                                }
+                            }
+                        } else {
+                            currentPaperDiv.innerHTML = '<p class="text-muted mb-0">等待开始处理...</p>';
+                        }
+                        
+                        // 更新论文列表
+                        const papersListDiv = document.getElementById('papers-list');
+                        
+                        // 从元数据文件获取论文列表
+                        fetch('/api/papers_metadata/{{ output_dir }}')
+                            .then(response => response.json())
+                            .then(papersData => {
+                                if (papersData && papersData.length > 0) {
+                                    papersListDiv.innerHTML = papersData.map(paper => `
+                                        <div class="paper-item">
+                                            <h6 class="mb-1">${paper.title}</h6>
+                                            <p class="mb-1"><small class="text-muted">作者: ${paper.authors.join(', ')}</small></p>
+                                            <p class="mb-1"><small class="text-muted">分类: ${paper.categories.join(', ')}</small></p>
+                                            <span class="badge ${paper.status === 'completed' ? 'bg-success' : 'bg-warning'}">
+                                                ${paper.status === 'completed' ? '已完成' : '处理中'}
+                                            </span>
+                                        </div>
+                                    `).join('');
+                                } else if (data.papers && data.papers.length > 0) {
+                                    // 如果API获取失败，尝试使用进度数据中的论文列表
+                                    papersListDiv.innerHTML = data.papers.map(paper => `
+                                        <div class="paper-item">
+                                            <h6 class="mb-1">${paper.title}</h6>
+                                            <p class="mb-1"><small class="text-muted">作者: ${paper.authors.join(', ')}</small></p>
+                                            <p class="mb-1"><small class="text-muted">分类: ${paper.categories.join(', ')}</small></p>
+                                            <span class="badge ${paper.status === 'completed' ? 'bg-success' : 'bg-warning'}">
+                                                ${paper.status === 'completed' ? '已完成' : '处理中'}
+                                            </span>
+                                        </div>
+                                    `).join('');
+                                } else {
+                                    papersListDiv.innerHTML = `
+                                        <div class="no-papers">
+                                            <i class="bi bi-journal-x"></i>
+                                            <p>暂无已处理的论文</p>
+                                        </div>
+                                    `;
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error fetching papers metadata:', error);
+                                // 如果获取失败，显示备用内容
+                                if (data.papers && data.papers.length > 0) {
+                                    papersListDiv.innerHTML = data.papers.map(paper => `
+                                        <div class="paper-item">
+                                            <h6 class="mb-1">${paper.title}</h6>
+                                            <p class="mb-1"><small class="text-muted">作者: ${paper.authors.join(', ')}</small></p>
+                                            <p class="mb-1"><small class="text-muted">分类: ${paper.categories.join(', ')}</small></p>
+                                            <span class="badge ${paper.status === 'completed' ? 'bg-success' : 'bg-warning'}">
+                                                ${paper.status === 'completed' ? '已完成' : '处理中'}
+                                            </span>
+                                        </div>
+                                    `).join('');
+                                } else {
+                                    papersListDiv.innerHTML = `
+                                        <div class="no-papers">
+                                            <i class="bi bi-journal-x"></i>
+                                            <p>暂无已处理的论文</p>
+                                        </div>
+                                    `;
+                                }
+                            });
+                        
+                        // 如果完成，显示完成提示
+                        const completionAlert = document.getElementById('completion-alert');
+                        if (data.status === 'completed' || data.status === 'imported') {
+                            completionAlert.style.display = 'block';
+                        } else {
+                            completionAlert.style.display = 'none';
+                            // 继续更新
+                            setTimeout(updateProgress, 2000);
+                        }
+                    })
+                    .catch(error => {
+                        // 隐藏加载指示器
+                        document.getElementById('loading-bar').style.display = 'none';
+                        
+                        console.error('Error fetching progress:', error);
+                        
+                        // 显示错误信息
+                        if (updateCounter === 0) {
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'alert alert-danger mt-3';
+                            errorDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> 获取进度信息失败: ${error.message}`;
+                            document.querySelector('.container').prepend(errorDiv);
+                        }
+                        
+                        // 继续尝试获取进度，但增加间隔时间
+                        setTimeout(updateProgress, 5000);
+                    });
+            }
+            
+            // 开始更新进度
+            updateProgress();
         });
     </script>
 </body>

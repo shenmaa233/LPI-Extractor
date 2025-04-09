@@ -926,8 +926,40 @@ def import_papers_from_csv(csv_file, pdf_dir):
         
         # 转换为字典列表
         papers_data = []
-        imported_count = 0
+        duplicates_count = 0
         
+        # 第一阶段：一次性检查所有论文是否存在，避免导入过程中的时序问题
+        existing_arxiv_ids = set()
+        existing_dois = set()
+        
+        # 收集所有可能存在的DOI和arXiv ID
+        doi_list = [row.get('doi', '') for _, row in df.iterrows() if row.get('doi')]
+        arxiv_id_list = [row.get('id', '') for _, row in df.iterrows() if row.get('id')]
+        
+        # 使用批量查询获取已存在的论文ID
+        with db_manager.get_session() as session:
+            from database.models import Paper
+            from sqlalchemy import or_
+            
+            if doi_list:
+                # 确保所有DOI都是字符串类型
+                doi_list = [str(doi) for doi in doi_list if doi]
+                try:
+                    existing_doi_records = session.query(Paper.doi).filter(Paper.doi.in_(doi_list)).all()
+                    existing_dois = set([r[0] for r in existing_doi_records if r[0]])
+                except Exception as e:
+                    logger.error(f"DOI查询失败: {str(e)}")
+                    existing_dois = set()
+            
+            if arxiv_id_list:
+                try:
+                    existing_arxiv_records = session.query(Paper.arxiv_id).filter(Paper.arxiv_id.in_(arxiv_id_list)).all()
+                    existing_arxiv_ids = set([r[0] for r in existing_arxiv_records if r[0]])
+                except Exception as e:
+                    logger.error(f"arXiv ID查询失败: {str(e)}")
+                    existing_arxiv_ids = set()
+        
+        # 第二阶段：准备需要导入的论文数据
         for _, row in df.iterrows():
             # 构建论文数据
             paper_data = {
@@ -942,16 +974,16 @@ def import_papers_from_csv(csv_file, pdf_dir):
                 'doi': row.get('doi', '')  # 添加DOI支持
             }
             
-            # 检查是否已存在（通过DOI或arXiv ID）
-            existing_paper = None
-            if paper_data['doi']:
-                existing_paper = db_manager.get_paper_by_doi(paper_data['doi'])
+            # 使用之前收集的集合快速检查是否存在
+            paper_exists = False
+            if paper_data['doi'] and paper_data['doi'] in existing_dois:
+                paper_exists = True
+            elif paper_data['id'] and paper_data['id'] in existing_arxiv_ids:
+                paper_exists = True
             
-            if not existing_paper and paper_data['id']:
-                existing_paper = db_manager.get_paper_by_arxiv_id(paper_data['id'])
-            
-            if existing_paper:
+            if paper_exists:
                 logger.info(f"论文已存在，跳过: {paper_data['id']}")
+                duplicates_count += 1
                 continue
             
             # 查找本地PDF文件
@@ -970,7 +1002,8 @@ def import_papers_from_csv(csv_file, pdf_dir):
             imported_count = len(added_ids)
             logger.info(f"成功从CSV导入 {imported_count} 篇新论文")
         else:
-            logger.info("没有新论文需要导入")
+            logger.info(f"没有新论文需要导入，{duplicates_count}篇论文已在数据库中")
+            imported_count = 0
         
         return imported_count
     
@@ -1096,6 +1129,59 @@ def cancel_extraction(paper_id):
     except Exception as e:
         flash(f"取消任务失败: {str(e)}", "error")
         return redirect(url_for('paper_detail', paper_id=paper_id))
+
+# API: 获取论文元数据
+@app.route('/api/papers_metadata/<output_dir>', methods=['GET'])
+def api_papers_metadata(output_dir):
+    """
+    获取论文元数据API
+    """
+    # 构建完整输出目录路径
+    full_output_dir = os.path.join(app.config['UPLOAD_FOLDER'], output_dir)
+    
+    # 检查目录是否存在
+    if not os.path.exists(full_output_dir):
+        return jsonify({"error": "目录不存在"}), 404
+    
+    # 获取元数据文件
+    metadata_file = os.path.join(full_output_dir, "papers_metadata.json")
+    csv_metadata_file = os.path.join(full_output_dir, "papers_metadata.csv")
+    
+    # 尝试从JSON文件获取论文元数据
+    if os.path.exists(metadata_file):
+        try:
+            with open(metadata_file, 'r', encoding='utf-8') as f:
+                papers = json.load(f)
+            return jsonify(papers)
+        except Exception as e:
+            logger.error(f"读取JSON元数据文件失败: {str(e)}")
+    
+    # 如果JSON文件不存在，尝试从CSV文件读取
+    if os.path.exists(csv_metadata_file):
+        try:
+            papers = []
+            with open(csv_metadata_file, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    # 转换CSV行为字典
+                    paper = {
+                        "id": row.get("id", ""),
+                        "title": row.get("title", ""),
+                        "authors": row.get("authors", "").split(","),
+                        "categories": row.get("categories", "").split(","),
+                        "abstract": row.get("abstract", ""),
+                        "url": row.get("url", ""),
+                        "pdf_url": row.get("pdf_url", ""),
+                        "status": "completed"
+                    }
+                    papers.append(paper)
+            return jsonify(papers)
+        except Exception as e:
+            logger.error(f"读取CSV元数据文件失败: {str(e)}")
+            return jsonify({"error": f"读取元数据文件失败: {str(e)}"}), 500
+    
+    # 如果两种文件都不存在，返回空列表
+    return jsonify([])
 
 if __name__ == '__main__':
     # 在开发环境中运行

@@ -17,7 +17,7 @@ def search_arxiv(title_query="", abstract_query="", category="", max_results=50,
         title_query (str): Query for title
         abstract_query (str): Query for abstract
         category (str): arXiv category
-        max_results (int): Maximum number of results to return
+        max_results (int): Maximum number of NEW papers to return
         database_manager: DatabaseManager instance for checking existing papers
         skip_existing (bool): Whether to skip papers that exist in the database
         
@@ -26,9 +26,10 @@ def search_arxiv(title_query="", abstract_query="", category="", max_results=50,
     """
     base_url = "http://export.arxiv.org/api/query?"
     
-    # 增加搜索结果数量，以便在过滤重复论文后仍有足够的新论文
-    # 如果要求跳过已有论文，则多请求一些论文，最多请求100篇
-    actual_max_results = min(max_results * 2, 100) if skip_existing and database_manager else max_results
+    # 设置搜索参数
+    batch_size = 50  # 每次API请求的论文数量
+    max_search_attempts = 20  # 最大搜索次数，防止无限循环
+    max_total_results = 1000  # 最大总搜索结果数，避免过多请求
     
     # Build search query
     search_terms = []
@@ -54,63 +55,97 @@ def search_arxiv(title_query="", abstract_query="", category="", max_results=50,
     # URL encode the query
     encoded_query = urllib.parse.quote(search_query)
     
-    # Construct the API URL
-    params = f"search_query={encoded_query}&start=0&max_results={actual_max_results}&sortBy=submittedDate&sortOrder=descending"
-    
-    # Make the request
-    response = requests.get(base_url + params)
-    
-    # Use feedparser to parse the response
-    feed = feedparser.parse(response.content)
-    
-    # Extract paper information
+    # 存储所有论文信息
     papers = []
-    for entry in feed.entries:
-        paper_id = entry.id.split('/abs/')[-1]
+    new_papers_count = 0
+    
+    # 分页搜索，直到找到足够的新论文或达到最大搜索限制
+    for attempt in range(max_search_attempts):
+        start_index = attempt * batch_size
         
-        # Extract the PDF link
-        pdf_url = f"https://arxiv.org/pdf/{paper_id}.pdf"
+        if start_index >= max_total_results:
+            print(f"Reached maximum search limit of {max_total_results} results")
+            break
+            
+        # 构建API请求URL
+        params = f"search_query={encoded_query}&start={start_index}&max_results={batch_size}&sortBy=submittedDate&sortOrder=descending"
         
-        # Get categories
-        categories = [tag['term'] for tag in entry.tags] if 'tags' in entry else []
+        print(f"Searching batch {attempt+1}: results {start_index} to {start_index+batch_size}")
         
-        # Extract DOI if available
-        doi = None
-        if hasattr(entry, 'arxiv_doi'):
-            doi = entry.arxiv_doi
-        elif hasattr(entry, 'doi'):
-            doi = entry.doi
-        # Try to find DOI in the summary
-        elif hasattr(entry, 'summary'):
-            doi_match = re.search(r'doi:\s*(10\.\d+/[^\s]+)', entry.summary, re.IGNORECASE)
-            if doi_match:
-                doi = doi_match.group(1)
-        
-        paper_info = {
-            'id': paper_id,
-            'title': entry.title,
-            'authors': [author.name for author in entry.authors],
-            'abstract': entry.summary,
-            'published': entry.published,
-            'updated': entry.updated,
-            'categories': categories,
-            'url': entry.link,
-            'pdf_url': pdf_url,
-            'doi': doi,
-            'already_exists': False  # 默认标记为不存在
-        }
-        
-        # 检查是否已存在于数据库中
-        if skip_existing and database_manager:
-            if check_if_paper_exists(paper_info, database_manager):
-                paper_info['already_exists'] = True
-        
-        papers.append(paper_info)
-        
-        # 如果已经找到足够的新论文，可以提前停止
-        if len([p for p in papers if not p['already_exists']]) >= max_results:
+        try:
+            # 发送请求
+            response = requests.get(base_url + params)
+            
+            # 解析响应
+            feed = feedparser.parse(response.content)
+            
+            # 检查是否有结果
+            if not feed.entries:
+                print("No more results found")
+                break
+                
+            # 处理这一批结果
+            for entry in feed.entries:
+                paper_id = entry.id.split('/abs/')[-1]
+                
+                # Extract the PDF link
+                pdf_url = f"https://arxiv.org/pdf/{paper_id}.pdf"
+                
+                # Get categories
+                categories = [tag['term'] for tag in entry.tags] if 'tags' in entry else []
+                
+                # Extract DOI if available
+                doi = None
+                if hasattr(entry, 'arxiv_doi'):
+                    doi = entry.arxiv_doi
+                elif hasattr(entry, 'doi'):
+                    doi = entry.doi
+                # Try to find DOI in the summary
+                elif hasattr(entry, 'summary'):
+                    doi_match = re.search(r'doi:\s*(10\.\d+/[^\s]+)', entry.summary, re.IGNORECASE)
+                    if doi_match:
+                        doi = doi_match.group(1)
+                
+                paper_info = {
+                    'id': paper_id,
+                    'title': entry.title,
+                    'authors': [author.name for author in entry.authors],
+                    'abstract': entry.summary,
+                    'published': entry.published,
+                    'updated': entry.updated,
+                    'categories': categories,
+                    'url': entry.link,
+                    'pdf_url': pdf_url,
+                    'doi': doi,
+                    'already_exists': False  # 默认标记为不存在
+                }
+                
+                # 检查是否已存在于数据库中
+                if skip_existing and database_manager:
+                    if check_if_paper_exists(paper_info, database_manager):
+                        paper_info['already_exists'] = True
+                        print(f"Paper already exists in database: {paper_id}")
+                    else:
+                        new_papers_count += 1
+                        print(f"New paper found: {paper_id}")
+                else:
+                    new_papers_count += 1
+                
+                papers.append(paper_info)
+            
+            # 如果已经找到足够的新论文，可以提前停止
+            if new_papers_count >= max_results:
+                print(f"Found {new_papers_count} new papers, stopping search")
+                break
+                
+            # 防止过快请求
+            time.sleep(3)
+            
+        except Exception as e:
+            print(f"Error searching arXiv: {str(e)}")
             break
     
+    print(f"Search completed. Found {len(papers)} total papers, {new_papers_count} are new.")
     return papers
 
 def download_pdf(paper_info, output_dir, progress_callback=None):
@@ -169,7 +204,7 @@ def download_pdf(paper_info, output_dir, progress_callback=None):
         print(f"Error downloading {paper_info['id']}: {str(e)}")
         return None
 
-def save_metadata(papers, output_dir):
+def save_metadata(papers, output_dir, filename="papers_metadata"):
     """
     Save paper metadata to a CSV file
     """
@@ -178,7 +213,7 @@ def save_metadata(papers, output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     
-    metadata_file = os.path.join(output_dir, "papers_metadata.csv")
+    metadata_file = os.path.join(output_dir, f"{filename}.csv")
     
     fieldnames = ['id', 'title', 'authors', 'abstract', 'published', 'updated', 'categories', 'url', 'pdf_url', 'doi', 'already_exists']
     
@@ -194,7 +229,7 @@ def save_metadata(papers, output_dir):
             writer.writerow(paper_row)
     
     # Also save as JSON for easier progress tracking
-    json_file = os.path.join(output_dir, "papers_metadata.json")
+    json_file = os.path.join(output_dir, f"{filename}.json")
     with open(json_file, 'w', encoding='utf-8') as f:
         json.dump(papers, f, ensure_ascii=False, indent=2)
     
@@ -326,10 +361,26 @@ def main():
     # 如果启用了跳过已有论文，只处理新论文
     papers_to_process = new_papers if args.skip_existing else papers
     
+    # 检查是否有足够的新论文
+    if len(papers_to_process) < args.max:
+        print(f"Warning: Only found {len(papers_to_process)} new papers, less than requested {args.max}")
+    
+    # 如果没有新论文可处理，提前退出
+    if not papers_to_process:
+        print("No new papers to process.")
+        save_progress(args.output, 0, 0, len(skipped_papers), 0, None, "completed")
+        
+        # 保存已跳过的论文元数据供参考
+        if skipped_papers:
+            metadata_file = save_metadata(skipped_papers, args.output, filename="skipped_papers_metadata")
+            print(f"Saved skipped papers metadata to: {metadata_file}")
+        
+        return
+    
     # 截取到最大数量
     papers_to_process = papers_to_process[:args.max]
     
-    # Save metadata
+    # Save metadata for papers to process
     metadata_file = save_metadata(papers_to_process, args.output)
     print(f"Saved metadata to: {metadata_file}")
     
